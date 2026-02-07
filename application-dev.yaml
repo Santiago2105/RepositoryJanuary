@@ -1,0 +1,104 @@
+config_source: dev
+
+server:
+  port: 8082
+  servlet:
+    contextPath: "/"
+
+spring:
+  datasource:
+    url: "jdbc:mysql://192.168.100.191:3306/ComsatelToMaster"
+    username: clocator
+    password: cl0c4t0r
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    platform: mysql
+    ddl-auto: create
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    show-sql: true
+    generate-ddl: false
+    hibernate:
+      dialect: org.hibernate.dialect.MySQLInnoDBDialect
+      ddl-auto: none # create
+      jdbc.batch_size: 20
+      order_inserts: true
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    properties:
+      hibernate:
+        default_schema: ComsatelToMaster
+  flyway:
+    enabled: false
+    baseline-on-migrate: false
+    check-location: false
+    locations: classpath:db/migration,classpath:db/callback
+    schemas:  ComsatelToMaster
+
+logging:
+  level:
+    org:
+      springframework: DEBUG
+    pe:
+      com:
+        comsatel:
+          microservice-posiciones: DEBUG
+
+opentracing:
+  jaeger:
+    udp-sender:
+      host: 0.0.0.0
+      port: 6831
+    const-sampler:
+      decision: true
+    enabled: false
+    log-spans: true
+    service-name: Reporting Service
+
+
+keycloak:
+  enabled: false
+  auth-server-url: https://keycloak.dev.comsatel.com.pe/auth
+  realm: microservicios
+  resource: Reporting Service
+  ssl-required: external
+  public-client: true
+  use-resource-role-mappings: false
+  credentials:
+    secret: change-me
+  securityConstraints:
+    - authRoles: [Integration]
+      securityCollections:
+        - patterns: ['/api/v1/microservice-posiciones/*']
+
+resilience4j:
+  retry:
+    instances:
+      servicePositionDeviceTagMessage:
+        maxAttempts: 10
+        waitDuration: 1s
+        retryExceptions:
+          - java.lang.Exception
+      serviceSendProtocolTrackSolid:
+        maxAttempts: 10
+        waitDuration: 1s
+        retryExceptions:
+          - java.lang.Exception
+  circuitbreaker:
+    instances:
+      servicePositionDeviceTagMessage:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 100
+        waitDurationInOpenState: 10m
+        permittedNumberOfCallsInHalfOpenState: 1
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+      serviceSendProtocolTrackSolid:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 100
+        waitDurationInOpenState: 10m
+        permittedNumberOfCallsInHalfOpenState: 1
+        automaticTransitionFromOpenToHalfOpenEnabled: true
